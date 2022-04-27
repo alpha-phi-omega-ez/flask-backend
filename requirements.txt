@@ -1,8 +1,13 @@
+alembic==1.7.7
 certifi==2021.10.8
+cffi==1.15.0
 charset-normalizer==2.0.12
 click==8.1.2
+cryptography==37.0.0
 Flask==2.1.1
 Flask-Login==0.6.0
+Flask-Migrate==3.1.0
+Flask-Script==2.0.6
 Flask-SQLAlchemy==2.5.1
 Flask-WTF==1.0.1
 gunicorn==20.1.0
@@ -10,8 +15,12 @@ idna==3.3
 importlib-metadata==4.11.3
 itsdangerous==2.1.2
 Jinja2==3.1.1
+Mako==1.2.0
 MarkupSafe==2.1.1
 oauthlib==3.2.0
+psycopg2-binary==2.9.3
+pycparser==2.21
+pyOpenSSL==22.0.0
 requests==2.27.1
 SQLAlchemy==1.4.36
 urllib3==1.26.9
