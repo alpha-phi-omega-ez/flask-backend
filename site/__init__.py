@@ -1,6 +1,7 @@
 # Flask imports
 from flask import Flask
 from flask_login import LoginManager
+from oauthlib.oauth2 import WebApplicationClient
 
 # Create Flask app
 app = Flask(__name__)
@@ -12,7 +13,7 @@ app.config.from_pyfile("config.py", silent=True)
 login_manager = LoginManager(app)
 
 # OAuth 2 client setup
-google_client = WebApplicationClient(GOOGLE_CLIENT_ID)
+google_client = WebApplicationClient(app.config["GOOGLE_CLIENT_ID"])
 
 # Import all views
 import site.views

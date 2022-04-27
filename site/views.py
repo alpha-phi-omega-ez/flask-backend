@@ -176,4 +176,4 @@ def page_not_found(e):
 def error_for_server(e):
 
     # 500 error page
-    return render_template('500.html')
+    return render_template('500.html'), 500
