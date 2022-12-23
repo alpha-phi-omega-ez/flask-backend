@@ -25,6 +25,11 @@ function LoggedIn() {
   },[])
 
   const handleLogout=()=>{
+    Axios.get(`${BACKEND_URL}/logout`,{
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem('JWT')}`
+      }
+    })
     localStorage.removeItem('JWT')
     return nav("/login")
   }
