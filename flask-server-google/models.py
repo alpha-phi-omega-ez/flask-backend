@@ -18,8 +18,6 @@ class BacktestClasses(db.Model):
 class Backtest(db.Model):
     id = db.Column(db.Integer, primary_key=True, unique=True)
     subject_code = db.Column(db.String(4), nullable=False, unique=False)
-    subject_code_cross = db.Column(db.String(4), nullable=True, unique=False)
-    subject_code_cross_extra = db.Column(db.String(4), nullable=True, unique=False)
     added = db.Column(db.DateTime, nullable=False, unique=False)
     course_number = db.Column(db.Integer, nullable=False, unique=False)
     exam = db.Column(db.Boolean, unique=False, default=False)
