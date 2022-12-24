@@ -14,6 +14,9 @@
 # misc
 .env
 
+#.json files
+client-secret.json
+
 .DS_Store
 .env.local
 .env.development.local
