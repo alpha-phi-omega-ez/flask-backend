@@ -25,6 +25,7 @@ class Backtest(db.Model):
     midterm = db.Column(db.Boolean, unique=False, default=False)
     year = db.Column(db.Integer, nullable=False, unique=False)
     semester = db.Column(db.String(1), nullable=False, unique=False)
+    backtest_number = db.Column(db.Integer, nullable=False, unique=False)
 
 
 # LAF Locations
