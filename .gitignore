@@ -1,3 +1,7 @@
+
 flask-server-google/venv/
+#json file
+google-login-react/client-secret.json
+
 *.pyc
 *.DS_Store

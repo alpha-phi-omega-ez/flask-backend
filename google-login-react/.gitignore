@@ -15,7 +15,7 @@
 .env
 
 #.json files
-google-login-react/client-secret.json
+client-secret.json
 
 .DS_Store
 .env.local
