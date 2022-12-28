@@ -15,6 +15,7 @@ class BacktestClasses(db.Model):
 
 
 # Backtest Table
+# Spring semester denoted a for proper sorting
 class Backtest(db.Model):
     id = db.Column(db.Integer, primary_key=True, unique=True)
     subject_code = db.Column(db.String(4), nullable=False, unique=False)
@@ -42,4 +43,3 @@ class LostReport(db.Model):
     phone_area_code = db.Column(db.Integer, nullable=False, unique=False)
     phone_middle = db.Column(db.Integer, nullable=False, unique=False)
     phone_end = db.Column(db.Integer, nullable=False, unique=False)
-    
