@@ -12,7 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 
-from models import Backtest, BacktestClasses, BacktestSubjectCode
+from models import User, Backtest, BacktestClasses
 
 from . import api, app, db
 
@@ -23,6 +23,9 @@ client_secrets_file = os.path.join(pathlib.Path(__file__).parent, "client-secret
 algorithm = app.config["ALGORITHM"]
 BACKEND_URL = app.config["BACKEND_URL"]
 FRONTEND_URL = app.config["FRONTEND_URL"]
+FOUR_HOURS = 60*60*4
+
+users = list()
 
 
 flow = Flow.from_client_secrets_file(
@@ -42,8 +45,26 @@ def login_required(function):
         encoded_jwt = request.headers.get("Authorization").split("Bearer ")[1]
         if encoded_jwt == None:
             return abort(401)
-        else:
-            return function()
+        
+        decoded_jwt = None
+        try:
+            decoded_jwt = jwt.decode(
+                encoded_jwt,
+                app.secret_key,
+                algorithms=[
+                    algorithm,
+                ],
+            )
+        except Exception as e:
+            return jsonify({"message": "Decoding JWT Failed", "exception": e.args}), 500
+        
+        check = False
+        for user in users:
+            if decoded_jwt in user[0]:
+                check = True
+        
+        if not check: abort(401)
+        return function()
 
     return wrapper
 
@@ -54,7 +75,7 @@ def Generate_JWT(payload):
 
 
 class Callback(Resource):
-    def post(self):
+    def get(self):
         flow.fetch_token(authorization_response=request.url)
         credentials = flow.credentials
         request_session = requests.session()
@@ -67,11 +88,26 @@ class Callback(Resource):
         )
         session["google_id"] = id_info.get("sub")
 
-        # removing the specific audience, as it is throwing error
         del id_info["aud"]
         jwt_token = Generate_JWT(id_info)
-        # insert_into_db(id_info.get("name"), id_info.get("email"), id_info.get("picture"))
-        # add sql alchemy things
+        now = datetime.now()
+
+        check = False
+        for user in users:
+            if not check and user[0] == id_info:
+                user[1] = now
+                check = True
+                
+        users = [user for user in users if (now - user[1]).total_seconds() < FOUR_HOURS]
+        
+        if not check:
+            users.append(list(id_info, now))
+        
+        check_user = User.query.filter_by(email=id_info.get("email")).first()
+        if check_user is None:
+            new_user = User(name=id_info.get("name"), email=id_info.get("email"))
+            db.session.add(new_user)
+            db.session.commit()
         return redirect(f"{FRONTEND_URL}?jwt={jwt_token}")
 
 
@@ -85,15 +121,11 @@ class GoogleAuth(Resource):
 
 class LogOut(Resource):
     def get(self):
-        # clear the local storage from frontend
-        session.clear()
-        return jsonify({"message": "Logged out"}), 202
-
-
-class Home(Resource):
-    @login_required
-    def get(self):
         encoded_jwt = request.headers.get("Authorization").split("Bearer ")[1]
+        if encoded_jwt == None:
+            return abort(401)
+        
+        decoded_jwt = None
         try:
             decoded_jwt = jwt.decode(
                 encoded_jwt,
@@ -102,33 +134,30 @@ class Home(Resource):
                     algorithm,
                 ],
             )
-            # print(decoded_jwt)
         except Exception as e:
             return jsonify({"message": "Decoding JWT Failed", "exception": e.args}), 500
-        return jsonify(decoded_jwt), 200
+
+        now = datetime.now()
+        users = [user for user in users if (now - user[1]).total_seconds() < FOUR_HOURS or user[0] != decoded_jwt]
+
+        # clear the local storage from frontend
+        session.clear()
+        return jsonify({"message": "Logged out"}), 202
 
 
-class BacktestSubjectCodesRoute(Resource):
+class Home(Resource):
+    @login_required
     def get(self):
-        backtest_subject_codes = BacktestSubjectCode.query.all()
-        backtest_subject_codes = sorted(
-            backtest_subject_codes, key=lambda x: x.subject_code
-        )
-        return (
-            jsonify(
-                {
-                    "subject_codes": [
-                        subject_code.subject_code
-                        for subject_code in backtest_subject_codes
-                    ]
-                }
-            ),
-            200,
-        )
+        return jsonify({"hello": "there"}), 200
 
 
 parser_backtest_classes = reqparse.RequestParser()
 parser_backtest_classes.add_argument("subject_code", type=str, required=True)
+
+parser_backtest_classes_post = reqparse.RequestParser()
+parser_backtest_classes_post.add_argument("subject_code", type=str, required=True)
+parser_backtest_classes_post.add_argument("course_code", type=int, required=True)
+parser_backtest_classes_post.add_argument("name_of_course", type=str, required=True)
 
 
 class BacktestClassesRoute(Resource):
@@ -156,6 +185,38 @@ class BacktestClassesRoute(Resource):
                 }
             ),
             200,
+        )
+
+    @login_required
+    def post(self):
+        args = parser_backtest_classes_post.parse_args()
+
+        subject_code = args["subject_code"].upper().strip()
+        if len(subject_code) != 4:
+            return jsonify({"error": "Incorrect subject_code length passed in"}), 400
+
+        course_number = args["course_number"]
+        if len(str(course_number)) != 4:
+            return jsonify({"error": "Incorrect course_number length passed in"}), 400
+
+        name_of_course = args["name_of_course"].strip().lower().title()
+
+        new_backtest_class = BacktestClasses(
+            subject_code=subject_code,
+            course_number=course_number,
+            name_of_class=name_of_course,
+        )
+
+        db.session.add(new_backtest_class)
+        db.session.commit()
+
+        return (
+            jsonify(
+                {
+                    "success": f"new backtest class {subject_code} {course_number} {name_of_course} created"
+                }
+            ),
+            201,
         )
 
 
@@ -333,11 +394,20 @@ class BacktestsRoute(Resource):
             midterm = True
 
         now = datetime.now()
+        backtests_class = BacktestClasses.query.filter_by(
+            subject_code=subject_code, course_number=course_number
+        ).first()
+
+        if backtests_class is None:
+            return jsonify({"error": "Course not found"}), 404
+
+        name_of_class = backtests_class.name_of_class
 
         new_backtest = Backtest(
             subject_code=subject_code,
             added=now,
             course_number=course_number,
+            name_of_class=name_of_class,
             exam=exam,
             quiz=quiz,
             midterm=midterm,
@@ -363,6 +433,5 @@ api.add_resource(Home, "/home")
 api.add_resource(LogOut, "/logout")
 api.add_resource(GoogleAuth, "/auth/google")
 api.add_resource(Callback, "/callback")
-api.add_resource(BacktestSubjectCodesRoute, "/backtest/subjectcodes")
 api.add_resource(BacktestClassesRoute, "/backtest/classes")
 api.add_resource(BacktestsRoute, "/backtest/")
