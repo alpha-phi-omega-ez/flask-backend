@@ -12,7 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 
-from models import User, Backtest, BacktestClasses
+from models import User, Backtest, BacktestClasses, Chargers
 
 from . import api, app, db
 
@@ -429,9 +429,55 @@ class BacktestsRoute(Resource):
         )
 
 
+class ChargersInventory(Resource):
+    def get(self):
+        chargers = Chargers.query.all()
+        return jsonify({"chargers":[charger.description for charger in chargers]}), 200
+
+
+parser_charger = reqparse.RequestParser()
+parser_charger.add_argument("charger_id", type=int, required=False)
+
+parser_charger_post = reqparse.RequestParser()
+parser_charger_post.add_argument("charger_id", type=int, required=True)
+parser_charger_post.add_argument("in_office", type=bool, required=True)
+
+class ChargersInventoryBrothers(Resource):
+    @login_required
+    def get(self):
+        args = parser_charger_post.parse_args()
+        charger_id = args["charger_id"]
+
+        if charger_id is not None:
+            charger = Chargers.query.get(charger_id)
+            if charger is None:
+                return jsonify({"error": "charger not found"}), 404
+            return jsonify({"charger":[charger.description, charger.checked_out, charger.in_office]}), 200
+            
+        chargers = Chargers.query.all()
+        return jsonify({"chargers":[[charger.description, charger.checked_out, charger.in_office] for charger in chargers]}), 200
+    
+    @login_required
+    def post(self):
+        args = parser_charger_post.parse_args()
+
+        charger_id = args["charger_id"]
+        in_office = args["in_office"]
+
+        charger = Chargers.query.get(charger_id)
+        if charger is None:
+            return jsonify({"error": "charger not found"}), 404
+        
+        charger.in_office = in_office
+
+        db.session.commit()
+
+
 api.add_resource(Home, "/home")
 api.add_resource(LogOut, "/logout")
 api.add_resource(GoogleAuth, "/auth/google")
 api.add_resource(Callback, "/callback")
 api.add_resource(BacktestClassesRoute, "/backtest/classes")
 api.add_resource(BacktestsRoute, "/backtest/")
+api.add_resource(ChargersInventory, "/chargers/")
+api.add_resource(ChargersInventoryBrothers, "/chargers/status")

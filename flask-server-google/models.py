@@ -31,6 +31,15 @@ class Backtest(db.Model):
     backtest_number = db.Column(db.Integer, nullable=False, unique=False)
 
 
+# Backtest Table
+# Spring semester denoted a for proper sorting
+class Chargers(db.Model):
+    id = db.Column(db.Integer, primary_key=True, unique=True)
+    in_office = db.Column(db.Boolean, nullable=False, unique=False)
+    checked_out = db.Column(db.DateTime, nullable=False, unique=False)
+    description = db.Column(db.String(100), nullable=False, unique=False)
+
+
 # Lost Reports Table
 class LostReport(db.Model):
     id = db.Column(db.Integer, primary_key=True, unique=True)
