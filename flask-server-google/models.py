@@ -37,7 +37,7 @@ class Chargers(db.Model):
     id = db.Column(db.Integer, primary_key=True, unique=True)
     in_office = db.Column(db.Boolean, nullable=False, unique=False)
     checked_out = db.Column(db.DateTime, nullable=False, unique=False)
-    description = db.Column(db.String(100), nullable=False, unique=False)
+    description = db.Column(db.Text, nullable=False, unique=False)
 
 
 # Lost Reports Table
@@ -49,3 +49,6 @@ class LostReport(db.Model):
     phone_area_code = db.Column(db.Integer, nullable=False, unique=False)
     phone_middle = db.Column(db.Integer, nullable=False, unique=False)
     phone_end = db.Column(db.Integer, nullable=False, unique=False)
+    description = db.Column(db.Text, nullable=False, unique=False)
+    item_type = db.Column(db.String(15), nullable=False, unique=False)
+    date_lost = db.Column(db.Date, nullable=False, unique=False)
