@@ -5,16 +5,16 @@ from datetime import datetime
 import google
 import jwt
 import requests
-from flask import abort, jsonify, redirect, request, session
+from flask import abort, jsonify, redirect, request, session, make_response
 from flask_cors import CORS
 from flask_restful import Resource, reqparse
 from flask_sqlalchemy import SQLAlchemy
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 
-from models import User, Backtest, BacktestClasses, Chargers
+from apo.models import User, Backtest, BacktestClasses, Chargers
 
-from . import api, app, db
+from apo import api, app, db
 
 # bypass http
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
@@ -28,15 +28,15 @@ FOUR_HOURS = 60*60*4
 users = list()
 
 
-flow = Flow.from_client_secrets_file(
-    client_secrets_file=client_secrets_file,
-    scopes=[
-        "https://www.googleapis.com/auth/userinfo.profile",
-        "https://www.googleapis.com/auth/userinfo.email",
-        "openid",
-    ],
-    redirect_uri=BACKEND_URL + "/callback",
-)
+# flow = Flow.from_client_secrets_file(
+#     client_secrets_file=client_secrets_file,
+#     scopes=[
+#         "https://www.googleapis.com/auth/userinfo.profile",
+#         "https://www.googleapis.com/auth/userinfo.email",
+#         "openid",
+#     ],
+#     redirect_uri=BACKEND_URL + "/callback",
+# )
 
 
 # wrapper
@@ -56,7 +56,7 @@ def login_required(function):
                 ],
             )
         except Exception as e:
-            return jsonify({"message": "Decoding JWT Failed", "exception": e.args}), 500
+            return make_response(jsonify({"message": "Decoding JWT Failed", "exception": e.args}), 500)
         
         check = False
         for user in users:
@@ -116,7 +116,7 @@ class GoogleAuth(Resource):
         authorization_url, state = flow.authorization_url()
         # Store the state so the callback can verify the auth server response.
         session["state"] = state
-        return jsonify({"auth_url": authorization_url}), 200
+        return make_response(jsonify({"auth_url": authorization_url}), 200)
 
 
 class LogOut(Resource):
@@ -135,20 +135,20 @@ class LogOut(Resource):
                 ],
             )
         except Exception as e:
-            return jsonify({"message": "Decoding JWT Failed", "exception": e.args}), 500
+            return make_response(jsonify({"message": "Decoding JWT Failed", "exception": e.args}), 500)
 
         now = datetime.now()
         users = [user for user in users if (now - user[1]).total_seconds() < FOUR_HOURS or user[0] != decoded_jwt]
 
         # clear the local storage from frontend
         session.clear()
-        return jsonify({"message": "Logged out"}), 202
+        return make_response(jsonify({"message": "Logged out"}), 202)
 
 
 class Home(Resource):
-    @login_required
+    #@login_required
     def get(self):
-        return jsonify({"hello": "there"}), 200
+        return make_response(jsonify({"hello": "there"}), 200)
 
 
 parser_backtest_classes = reqparse.RequestParser()
@@ -166,13 +166,13 @@ class BacktestClassesRoute(Resource):
 
         subject_code = args["subject_code"].upper().strip()
         if len(subject_code) != 4:
-            return jsonify({"error": "Incorrect subject_code length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect subject_code length passed in"}), 400)
 
         backtest_classes = BacktestClasses.query.filter_by(
             subject_code=subject_code
         ).all()
         backtest_classes = sorted(backtest_classes, key=lambda x: x.course_number)
-        return (
+        return make_response(
             jsonify(
                 {
                     "classes": [
@@ -187,17 +187,17 @@ class BacktestClassesRoute(Resource):
             200,
         )
 
-    @login_required
+    #@login_required
     def post(self):
         args = parser_backtest_classes_post.parse_args()
 
         subject_code = args["subject_code"].upper().strip()
         if len(subject_code) != 4:
-            return jsonify({"error": "Incorrect subject_code length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect subject_code length passed in"}), 400)
 
         course_number = args["course_number"]
         if len(str(course_number)) != 4:
-            return jsonify({"error": "Incorrect course_number length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect course_number length passed in"}), 400)
 
         name_of_course = args["name_of_course"].strip().lower().title()
 
@@ -210,7 +210,7 @@ class BacktestClassesRoute(Resource):
         db.session.add(new_backtest_class)
         db.session.commit()
 
-        return (
+        return make_response(
             jsonify(
                 {
                     "success": f"new backtest class {subject_code} {course_number} {name_of_course} created"
@@ -239,11 +239,11 @@ class BacktestsRoute(Resource):
 
         subject_code = args["subject_code"].upper().strip()
         if len(subject_code) != 4:
-            return jsonify({"error": "Incorrect subject_code length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect subject_code length passed in"}), 400)
 
         course_number = args["course_number"]
         if len(str(course_number)) != 4:
-            return jsonify({"error": "Incorrect course_number length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect course_number length passed in"}), 400)
 
         backtests_exams = Backtest.query.filter_by(
             subject_code=subject_code, course_number=course_number, exam=True
@@ -260,7 +260,7 @@ class BacktestsRoute(Resource):
             and backtests_quizzes is None
             and backtests_midterms is None
         ):
-            return jsonify({"error": "No backwork found for this class"}), 404
+            return make_response(jsonify({"error": "No backwork found for this class"}), 404)
 
         if backtests_exams is not None:
             backtests_exams = sorted(
@@ -332,29 +332,29 @@ class BacktestsRoute(Resource):
         else:
             midterm = None
 
-        return jsonify({"exams": exams, "quizzes": quizzes, "midterms": midterms}), 200
+        return make_response(jsonify({"exams": exams, "quizzes": quizzes, "midterms": midterms}), 200)
 
-    @login_required
+    #@login_required
     def post(self):
         args = parser_backtest_post.parse_args()
 
         subject_code = args["subject_code"].upper().strip()
         if len(subject_code) != 4:
-            return jsonify({"error": "Incorrect subject_code length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect subject_code length passed in"}), 400)
 
         course_number = args["course_number"]
         if len(str(course_number)) != 4:
-            return jsonify({"error": "Incorrect course_number length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect course_number length passed in"}), 400)
 
         year = args["year"]
         if len(str(year)) != 4:
-            return jsonify({"error": "Incorrect year length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect year length passed in"}), 400)
 
         semester = args["semester"].upper().strip()
         if len(semester) != 1:
-            return jsonify({"error": "Incorrect semester length passed in"}), 400
+            return make_response(jsonify({"error": "Incorrect semester length passed in"}), 400)
         if semester != "A" or semester != "U" or semester != "Z":
-            return (
+            return make_response(
                 jsonify(
                     {
                         "error": "Incorrect semester type, A for Spring, U for Summer, and Z for Fall"
@@ -369,7 +369,7 @@ class BacktestsRoute(Resource):
             or backwork_type != "QUIZ"
             or backwork_type != "MIDTERM"
         ):
-            return (
+            return make_response(
                 jsonify(
                     {
                         "error": "unrecognized backwork_type, acceptable types are exam, quiz, or midterm"
@@ -399,7 +399,7 @@ class BacktestsRoute(Resource):
         ).first()
 
         if backtests_class is None:
-            return jsonify({"error": "Course not found"}), 404
+            return make_response(jsonify({"error": "Course not found"}), 404)
 
         name_of_class = backtests_class.name_of_class
 
@@ -419,7 +419,7 @@ class BacktestsRoute(Resource):
         db.session.add(new_backtest)
         db.session.commit()
 
-        return (
+        return make_response(
             jsonify(
                 {
                     "success": f"new backtest {subject_code} {course_number} {semester} {year} created"
@@ -432,7 +432,7 @@ class BacktestsRoute(Resource):
 class ChargersInventory(Resource):
     def get(self):
         chargers = Chargers.query.all()
-        return jsonify({"chargers":[charger.description for charger in chargers]}), 200
+        return make_response(jsonify({"chargers":[charger.description for charger in chargers]}), 200)
 
 
 parser_charger = reqparse.RequestParser()
@@ -443,7 +443,7 @@ parser_charger_post.add_argument("charger_id", type=int, required=True)
 parser_charger_post.add_argument("in_office", type=bool, required=True)
 
 class ChargersInventoryBrothers(Resource):
-    @login_required
+    #@login_required
     def get(self):
         args = parser_charger_post.parse_args()
         charger_id = args["charger_id"]
@@ -451,13 +451,13 @@ class ChargersInventoryBrothers(Resource):
         if charger_id is not None:
             charger = Chargers.query.get(charger_id)
             if charger is None:
-                return jsonify({"error": "charger not found"}), 404
-            return jsonify({"charger":[charger.description, charger.checked_out, charger.in_office]}), 200
+                return make_response(jsonify({"error": "charger not found"}), 404)
+            return make_response(jsonify({"charger":[charger.description, charger.checked_out, charger.in_office]}), 200)
             
         chargers = Chargers.query.all()
-        return jsonify({"chargers":[[charger.description, charger.checked_out, charger.in_office] for charger in chargers]}), 200
+        return make_response(jsonify({"chargers":[[charger.description, charger.checked_out, charger.in_office] for charger in chargers]}), 200)
     
-    @login_required
+    #@login_required
     def post(self):
         args = parser_charger_post.parse_args()
 
@@ -466,11 +466,13 @@ class ChargersInventoryBrothers(Resource):
 
         charger = Chargers.query.get(charger_id)
         if charger is None:
-            return jsonify({"error": "charger not found"}), 404
+            return make_response(jsonify({"error": "charger not found"}), 404)
         
         charger.in_office = in_office
 
         db.session.commit()
+
+        return make_response(jsonify({"success": "charger status updated"}), 200)
 
 
 api.add_resource(Home, "/home")

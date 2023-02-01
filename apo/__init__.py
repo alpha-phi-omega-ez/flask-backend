@@ -12,3 +12,5 @@ app.config["Access-Control-Allow-Origin"] = "*"
 app.config["Access-Control-Allow-Headers"] = "Content-Type"
 api = Api(app)
 db = SQLAlchemy(app, session_options={'expire_on_commit': False})
+
+import apo.routes

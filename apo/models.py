@@ -1,4 +1,4 @@
-from . import db
+from apo import db
 
 
 class User(db.Model):
