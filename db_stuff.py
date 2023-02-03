@@ -36,16 +36,17 @@ elif sys.argv[1] == 'create':
                 quiz = True
             else:
                 midterm = True
+                
             bt = Backtest(
-                subject_code = courses[0]
-                added = datetime.now()
-                course_number = courses[1]
-                name_of_class = courses[2]
-                exam = exam
-                quiz = quiz
-                midterm = midterm
-                year = random.choice([2016, 2017, 2018, 2019, 2020, 2021, 2022])
-                semester = random.choice(["A","U", "Z"])
+                subject_code = courses[0],
+                added = datetime.now(),
+                course_number = courses[1],
+                name_of_class = courses[2],
+                exam = exam,
+                quiz = quiz,
+                midterm = midterm,
+                year = random.choice([2016, 2017, 2018, 2019, 2020, 2021, 2022]),
+                semester = random.choice(["A","U", "Z"]),
                 backtest_number = random.choice([1, 2, 3, 4, 5, 6])
             )
 
