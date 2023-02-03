@@ -38,16 +38,6 @@ users = list()
 #     redirect_uri=BACKEND_URL + "/callback",
 # )
 
-flow = Flow.from_client_secrets_file(
-    client_secrets_file=client_secrets_file,
-    scopes=[
-        "https://www.googleapis.com/auth/userinfo.profile",
-        "https://www.googleapis.com/auth/userinfo.email",
-        "openid",
-    ],
-    redirect_uri=BACKEND_URL+"/callback",
-)
-
 # wrapper
 def login_required(function):
     def wrapper(*args, **kwargs):
@@ -165,7 +155,7 @@ parser_backtest_classes.add_argument("subject_code", type=str, required=True)
 
 parser_backtest_classes_post = reqparse.RequestParser()
 parser_backtest_classes_post.add_argument("subject_code", type=str, required=True)
-parser_backtest_classes_post.add_argument("course_code", type=int, required=True)
+parser_backtest_classes_post.add_argument("course_number", type=int, required=True)
 parser_backtest_classes_post.add_argument("name_of_course", type=str, required=True)
 
 
@@ -181,20 +171,16 @@ class BacktestClassesRoute(Resource):
             subject_code=subject_code
         ).all()
         backtest_classes = sorted(backtest_classes, key=lambda x: x.course_number)
+
         return make_response(
             jsonify(
                 {
-                    "classes": [
-                        {
-                            "names": f"{bt_class.course_number} - {bt_class.name_of_class}",
-                            "course_number": bt_class.course_number,
-                        }
-                        for bt_class in backtest_classes
-                    ]
+                    "classes": [ {"names": f"{bt_class.course_number} - {bt_class.name_of_class}", "course_number": bt_class.course_number } for bt_class in backtest_classes]
                 }
             ),
             200,
         )
+        #make_response(jsonify({"hello": "there"}), 200)
 
     #@login_required
     def post(self):
