@@ -1,3 +1,4 @@
-flask-server-google/venv/
+venv/
 *.pyc
 *.DS_Store
+database.db
