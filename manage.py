@@ -1,9 +1,8 @@
-import os
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 from config import TestingConfig, ProductionConfig
 
-from site import app, db
+from apo import app, db
 
 app.config.from_object(TestingConfig)
 
