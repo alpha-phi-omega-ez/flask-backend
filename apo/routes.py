@@ -8,7 +8,6 @@ import requests
 from flask import abort, jsonify, redirect, request, session, make_response
 from flask_cors import CORS
 from flask_restful import Resource, reqparse
-from flask_sqlalchemy import SQLAlchemy
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 
@@ -25,7 +24,8 @@ BACKEND_URL = app.config["BACKEND_URL"]
 FRONTEND_URL = app.config["FRONTEND_URL"]
 FOUR_HOURS = 60 * 60 * 4
 
-users = list()
+users = []
+global user
 
 
 # flow = Flow.from_client_secrets_file(
@@ -43,7 +43,7 @@ users = list()
 def login_required(function):
     def wrapper(*args, **kwargs):
         encoded_jwt = request.headers.get("Authorization").split("Bearer ")[1]
-        if encoded_jwt == None:
+        if encoded_jwt is None:
             return abort(401)
 
         decoded_jwt = None
@@ -125,7 +125,7 @@ class GoogleAuth(Resource):
 class LogOut(Resource):
     def get(self):
         encoded_jwt = request.headers.get("Authorization").split("Bearer ")[1]
-        if encoded_jwt == None:
+        if encoded_jwt is None:
             return abort(401)
 
         decoded_jwt = None
@@ -306,7 +306,7 @@ class BacktestsRoute(Resource):
                 backtests_midterms, key=lambda x: (x.year, x.semester), reverse=True
             )
 
-        exams = dict()
+        exams = {}
         if backtests_exams is not None:
             for exam in backtests_exams:
                 semester = ""
@@ -324,7 +324,7 @@ class BacktestsRoute(Resource):
         else:
             exams = None
 
-        quizzes = dict()
+        quizzes = {}
         if backtests_quizzes is not None:
             for quiz in backtests_quizzes:
                 semester = ""
@@ -342,7 +342,7 @@ class BacktestsRoute(Resource):
         else:
             quizzes = None
 
-        midterms = dict()
+        midterms = {}
         if backtests_midterms is not None:
             for midterm in backtests_midterms:
                 semester = ""
